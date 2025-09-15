@@ -18,7 +18,6 @@ export function useAddressData() {
       setCountries(data.countries || []);
     } catch (err) {
       setError(err.message);
-      console.error('Error fetching countries:', err);
     } finally {
       setIsLoading(false);
     }
@@ -42,7 +41,6 @@ export function useAddressData() {
       setCities([]); // Clear cities when country changes
     } catch (err) {
       setError(err.message);
-      console.error('Error fetching states:', err);
     } finally {
       setIsLoading(false);
     }
@@ -69,7 +67,6 @@ export function useAddressData() {
       setCities(data.cities || []);
     } catch (err) {
       setError(err.message);
-      console.error('Error fetching cities:', err);
     } finally {
       setIsLoading(false);
     }

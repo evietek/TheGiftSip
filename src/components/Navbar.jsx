@@ -11,9 +11,9 @@ import { useCart } from "@/contexts/CartContext";
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [showSearch, setShowSearch] = useState(false); // desktop search (unchanged)
-  const [mobileOpen, setMobileOpen] = useState(false); // NEW: mobile menu
-  const [mobileSearchOpen, setMobileSearchOpen] = useState(false); // NEW: mobile search
+  const [showSearch, setShowSearch] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const { getTotalItems } = useCart();
   const router = useRouter();
 
@@ -29,11 +29,19 @@ export default function Navbar() {
       if (e.key === "Escape") {
         setMobileOpen(false);
         setMobileSearchOpen(false);
+        setShowSearch(false);
       }
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, []);
+
+  // Focus management when opening
+  useEffect(() => {
+    if (mobileSearchOpen) {
+      document.getElementById("mobile-search")?.focus();
+    }
+  }, [mobileSearchOpen]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -52,12 +60,13 @@ export default function Navbar() {
         `fixed inset-x-0 top-0 z-50 flex flex-wrap justify-between items-center px-4 sm:px-6 md:px-8 lg:px-12 transition-colors duration-300 ` +
         (scrolled ? "bg-white shadow-md" : "bg-transparent")
       }
+      aria-label="Main navigation"
     >
-      {/* LEFT: Logo (unchanged) */}
+      {/* LEFT: Logo */}
       <Link href="/" className="flex-shrink-0">
         <Image
           src="/logo.png"
-          alt="Logo"
+          alt="Company logo"
           width={120}
           height={60}
           className="cursor-pointer ml-4 sm:ml-6 md:ml-16 lg:ml-24 xl:ml-32"
@@ -65,51 +74,78 @@ export default function Navbar() {
         />
       </Link>
 
-      {/* DESKTOP NAV (unchanged) */}
+      {/* DESKTOP NAV */}
       <div className="hidden md:flex items-center space-x-4 md:space-x-6 text-sm font-medium">
-        <Link href="/" className="text-black font-semibold">Home</Link>
-        <span className="text-gray-400 hidden md:inline">|</span>
-        <Link href="/about" className="text-black">About us</Link>
-        <span className="text-gray-400 hidden md:inline">|</span>
-        <Link href="/products" className="text-black">Products</Link>
-        <span className="text-gray-400 hidden md:inline">|</span>
-        <Link href="/contact" className="text-black">Contact</Link>
+        <Link href="/" className="text-black font-semibold">
+          Home
+        </Link>
+        <span className="text-gray-400 hidden md:inline" aria-hidden="true">
+          |
+        </span>
+        <Link href="/about" className="text-black">
+          About us
+        </Link>
+        <span className="text-gray-400 hidden md:inline" aria-hidden="true">
+          |
+        </span>
+        <Link href="/products" className="text-black">
+          Products
+        </Link>
+        <span className="text-gray-400 hidden md:inline" aria-hidden="true">
+          |
+        </span>
+        <Link href="/contact" className="text-black">
+          Contact
+        </Link>
       </div>
 
       {/* RIGHT: Cart + Search + Mobile Toggle */}
       <div className="flex items-center space-x-2 sm:space-x-3 md:space-x-4 mr-4 sm:mr-6 md:mr-16 lg:mr-24 xl:mr-32">
-        {/* MOBILE: Hamburger (md:hidden) */}
+        {/* MOBILE: Hamburger */}
         <button
           className="md:hidden p-2 border rounded-full border-black hover:bg-gray-100 transition"
           aria-label="Toggle menu"
           aria-expanded={mobileOpen}
+          aria-controls="mobile-menu"
           onClick={() => {
             setMobileOpen((v) => !v);
-            // close mobile search if opening menu
             if (!mobileOpen) setMobileSearchOpen(false);
           }}
         >
-          {mobileOpen ? <FiX size={18} className="text-black" /> : <FiMenu size={18} className="text-black" />}
+          {mobileOpen ? (
+            <FiX size={18} className="text-black" />
+          ) : (
+            <FiMenu size={18} className="text-black" />
+          )}
         </button>
 
-        {/* CART (unchanged) */}
+        {/* CART */}
         <Link
           href="/cart"
+          aria-label={`Cart, ${getTotalItems()} items`}
           className="flex items-center bg-orange-500 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-full hover:bg-orange-600 transition text-sm sm:text-base relative"
         >
-          Cart <FiShoppingBag className="ml-1 sm:ml-2" />
+          Cart
+          <FiShoppingBag className="ml-1 sm:ml-2" aria-hidden="true" />
           {getTotalItems() > 0 && (
-            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+            <span
+              aria-hidden="true"
+              className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center"
+            >
               {getTotalItems()}
             </span>
           )}
         </Link>
 
-        {/* DESKTOP SEARCH (unchanged) */}
+        {/* DESKTOP SEARCH */}
         <div className="hidden md:block">
           {showSearch ? (
             <form onSubmit={handleSearch} className="flex items-center">
+              <label htmlFor="desktop-search" className="sr-only">
+                Search products
+              </label>
               <input
+                id="desktop-search"
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -121,7 +157,8 @@ export default function Navbar() {
                 type="submit"
                 className="px-4 py-3 bg-orange-500 text-white rounded-r-full hover:bg-orange-600 transition"
               >
-                <FiSearch size={16} />
+                <FiSearch size={16} aria-hidden="true" />
+                <span className="sr-only">Submit search</span>
               </button>
               <button
                 type="button"
@@ -131,26 +168,28 @@ export default function Navbar() {
                 }}
                 className="ml-2 px-2 py-1 text-gray-500 hover:text-gray-700"
               >
-                ×
+                ×<span className="sr-only">Close search</span>
               </button>
             </form>
           ) : (
             <button
               onClick={() => setShowSearch(true)}
               className="p-2 border rounded-full border-black hover:bg-gray-100 transition"
+              aria-label="Open search"
             >
               <FiSearch size={18} className="text-black" />
             </button>
           )}
         </div>
 
-        {/* MOBILE SEARCH ICON (md:hidden) */}
+        {/* MOBILE SEARCH ICON */}
         <button
           className="md:hidden p-2 border rounded-full border-black hover:bg-gray-100 transition"
           aria-label="Toggle search"
+          aria-expanded={mobileSearchOpen}
+          aria-controls="mobile-search-container"
           onClick={() => {
             setMobileSearchOpen((v) => !v);
-            // close menu if opening search
             if (!mobileSearchOpen) setMobileOpen(false);
           }}
         >
@@ -158,15 +197,24 @@ export default function Navbar() {
         </button>
       </div>
 
-      {/* MOBILE SEARCH BAR (slide-down) */}
+      {/* MOBILE SEARCH BAR */}
       <div
+        id="mobile-search-container"
+        hidden={!mobileSearchOpen}
+        aria-hidden={!mobileSearchOpen}
         className={[
           "md:hidden w-full px-4 pb-3 transition-[max-height,opacity] duration-300 ease-out",
-          mobileSearchOpen ? "max-h-20 opacity-100" : "max-h-0 opacity-0 overflow-hidden",
+          mobileSearchOpen
+            ? "max-h-20 opacity-100"
+            : "max-h-0 opacity-0 overflow-hidden",
         ].join(" ")}
       >
         <form onSubmit={handleSearch} className="flex items-stretch gap-2">
+          <label htmlFor="mobile-search" className="sr-only">
+            Search products
+          </label>
           <input
+            id="mobile-search"
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -178,19 +226,24 @@ export default function Navbar() {
             type="submit"
             className="inline-flex items-center justify-center rounded-md bg-orange-500 px-4 text-sm font-semibold text-white hover:bg-orange-600"
           >
-            <FiSearch size={16} className="mr-1" />
+            <FiSearch size={16} className="mr-1" aria-hidden="true" />
+            <span className="sr-only">Submit search</span>
             Search
           </button>
         </form>
       </div>
 
-      {/* MOBILE MENU (slide-down) */}
+      {/* MOBILE MENU */}
       <div
+        id="mobile-menu"
+        hidden={!mobileOpen}
+        aria-hidden={!mobileOpen}
         className={[
           "md:hidden w-full px-4 pb-4 transition-[max-height,opacity] duration-300 ease-out",
-          mobileOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0 overflow-hidden",
+          mobileOpen
+            ? "max-h-96 opacity-100"
+            : "max-h-0 opacity-0 overflow-hidden",
         ].join(" ")}
-        aria-hidden={!mobileOpen}
       >
         <div className="grid gap-2">
           <Link

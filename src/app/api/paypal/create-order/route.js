@@ -39,7 +39,6 @@ export async function POST(req) {
     const order = await ppCreateOrder({ amount: total, currency: 'USD', shipping: ship });
     return NextResponse.json({ id: order.id });
   } catch (e) {
-    console.error('create-order error:', e);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }

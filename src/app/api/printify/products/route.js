@@ -73,7 +73,6 @@ export async function GET() {
 
     return NextResponse.json(formatted);
   } catch (error) {
-    console.error('products error:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   } finally {
     clearTimeout(timer);

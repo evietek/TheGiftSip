@@ -68,7 +68,6 @@ const RecentProducts = () => {
         }
         
       } catch (err) {
-        console.error("Fetch failed:", err);
         setProducts([]);
       } finally {
         setLoading(false);

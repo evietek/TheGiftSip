@@ -15,7 +15,6 @@ export async function POST(req) {
     // For MVP, just return the capture:
     return NextResponse.json({ ok: true, capture });
   } catch (e) {
-    console.error('capture-order error:', e);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }

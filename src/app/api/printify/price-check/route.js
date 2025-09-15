@@ -134,7 +134,6 @@ export async function POST(req) {
       lines,
     });
   } catch (err) {
-    console.error("price-check error:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

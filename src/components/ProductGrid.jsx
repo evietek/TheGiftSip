@@ -27,7 +27,6 @@ const ProductGrid = ({ filters, searchQuery = "" }) => {
           setFilteredProducts([]);
         }
       } catch (err) {
-        console.error("Fetch failed:", err);
         setAllProducts([]);
         setFilteredProducts([]);
       } finally {

@@ -63,7 +63,6 @@ const Sidebar = ({ filters, setFilters, isOpen, setIsOpen }) => {
           priceRange: [0, max],
         }));
       } catch (error) {
-        console.error("Failed to fetch sidebar data:", error);
       }
     };
 

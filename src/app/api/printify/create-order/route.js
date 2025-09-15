@@ -173,7 +173,6 @@ export async function POST(req) {
           return NextResponse.json({ error: 'Payment amount mismatch' }, { status: 409 });
         }
       } catch (e) {
-        console.error('PayPal verify failed:', e);
         return NextResponse.json({ error: 'Payment verification failed' }, { status: 502 });
       }
     }
@@ -212,7 +211,6 @@ export async function POST(req) {
 
     return NextResponse.json({ ok: true, printifyOrderId: created?.id || null }, { status: 200 });
   } catch (err) {
-    console.error('create-order error:', err);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }

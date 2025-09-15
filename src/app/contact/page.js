@@ -60,11 +60,9 @@ export default function ContactPage() {
         window.location.href = '/thank-you';
       } else {
         const errorData = await response.json();
-        console.error('Error:', errorData.error);
         alert('Failed to send message. Please try again.');
       }
     } catch (error) {
-      console.error('Error:', error);
       alert('Failed to send message. Please try again.');
     } finally {
       setIsSubmitting(false);

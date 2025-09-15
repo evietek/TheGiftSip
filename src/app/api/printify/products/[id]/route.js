@@ -136,7 +136,6 @@ export async function GET(_req, { params }) {
       options: product.options || [],
     });
   } catch (err) {
-    console.error('product[id] error:', err);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   } finally {
     clearTimeout(timer);

@@ -190,7 +190,6 @@ export async function POST(req) {
       }
     });
   } catch (error) {
-    console.error('Shipping quote error:', error);
     return NextResponse.json({
       error: 'Failed to calculate shipping cost',
       details: error.message

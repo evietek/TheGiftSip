@@ -56,7 +56,6 @@ export async function GET(req) {
         return NextResponse.json({ error: 'Invalid type parameter' }, { status: 400 });
     }
   } catch (error) {
-    console.error('Address data API error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

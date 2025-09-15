@@ -64,7 +64,6 @@ export async function GET() {
           if (v.is_enabled && v.price) prices.push(v.price / 100);
         });
       } catch (e) {
-        console.error('sidebar-metadata detail error:', e);
       }
     });
 
@@ -76,7 +75,6 @@ export async function GET() {
       priceRange: prices.length ? [Math.min(...prices), Math.max(...prices)] : [0, 0],
     });
   } catch (err) {
-    console.error('sidebar-metadata error:', err);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   } finally {
     clearTimeout(timer);

@@ -145,7 +145,6 @@ export const CartProvider = ({ children }) => {
         }
       }
     } catch (e) {
-      console.error("Cart load error:", e);
     }
   }, []);
 
@@ -154,7 +153,6 @@ export const CartProvider = ({ children }) => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state.items));
     } catch (e) {
-      console.error("Cart save error:", e);
     }
   }, [state.items]);
 

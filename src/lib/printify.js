@@ -46,7 +46,6 @@ export async function createPrintifyOrder(payload) {
     const text = await res.text(); // read once
     if (!res.ok) {
       // 3) Log safely (server logs only), don’t leak upstream body to client
-      console.error('Printify order failed', res.status, text?.slice(0, 500));
       throw new Error(`Printify order failed (${res.status})`);
     }
     return JSON.parse(text);

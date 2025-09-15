@@ -58,7 +58,6 @@ export async function POST(req) {
         // You *can* optionally capture here server-side if your flow didn’t already
         // const orderId = event?.resource?.id;
         // ... capture if needed ...
-        console.log('PP Webhook: ORDER APPROVED', eventId);
         break;
       }
 
@@ -69,8 +68,6 @@ export async function POST(req) {
         const orderId = event?.resource?.supplementary_data?.related_ids?.order_id;
 
         // With no DB, just log. If you later add email or reconciliation, do it here.
-        console.log('PP Webhook: CAPTURE COMPLETED', { eventId, orderId, captureId, amount, currency });
-
         // Optional: notify yourself via email or Slack; or reconcile totals by
         // re-running your server-side price check and comparing to `amount`.
         break;
@@ -81,13 +78,11 @@ export async function POST(req) {
       // - PAYMENT.CAPTURE.REFUNDED
       // - CHECKOUT.ORDER.COMPLETED
       default:
-        console.log('PP Webhook: Unhandled event', eventType);
     }
 
     // Always return 200 once verified and handled
     return NextResponse.json({ ok: true }, { status: 200 });
   } catch (e) {
-    console.error('PayPal webhook error:', e);
     // Returning 4xx/5xx makes PayPal retry later; only do this if you truly couldn’t process
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
