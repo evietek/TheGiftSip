@@ -7,10 +7,11 @@ function buildCsp() {
     "'self'",
     "'unsafe-inline'",                 // needed for PayPal SDK + styled-jsx
     'https://www.paypal.com',
+    'https://*.paypal.com',            // NEW
     'https://www.paypalobjects.com',
+    'https://*.paypalobjects.com',     // NEW
   ];
   if (!isProd) {
-    // Next.js dev server / HMR sometimes needs eval
     scriptSrc.push("'unsafe-eval'");
   }
 
@@ -19,6 +20,9 @@ function buildCsp() {
     'https://api.printify.com',
     'https://api-m.paypal.com',
     'https://api-m.sandbox.paypal.com',
+    'https://www.paypal.com',          // NEW
+    'https://www.sandbox.paypal.com',  // NEW
+    'https://*.paypal.com',            // NEW
   ];
 
   const imgSrc = [
@@ -27,26 +31,32 @@ function buildCsp() {
     'blob:',
     'https://images-api.printify.com',
     'https://images.printify.com',
+    'https://www.paypalobjects.com',   // NEW
+    'https://*.paypalobjects.com',     // NEW
   ];
 
   const frameSrc = [
-    'https://www.paypal.com', // PayPal buttons/iframes
+    "'self'",                          // NEW (safe)
+    'https://www.paypal.com',
+    'https://www.sandbox.paypal.com',  // NEW
+    'https://*.paypal.com',            // NEW
   ];
 
   return [
     `default-src 'self';`,
     `base-uri 'self';`,
     `object-src 'none';`,
-    `frame-ancestors 'none';`,                 // prevent clickjacking
+    `frame-ancestors 'none';`,
     `img-src ${imgSrc.join(' ')};`,
     `font-src 'self' data: https:;`,
-    `style-src 'self' 'unsafe-inline';`,       // styled-jsx / Tailwind inlines
+    `style-src 'self' 'unsafe-inline';`,
     `script-src ${scriptSrc.join(' ')};`,
     `connect-src ${connectSrc.join(' ')};`,
     `frame-src ${frameSrc.join(' ')};`,
     `upgrade-insecure-requests;`,
   ].join(' ');
 }
+
 
 const securityHeaders = [
   { key: 'Content-Security-Policy', value: buildCsp() },
