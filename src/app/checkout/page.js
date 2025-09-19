@@ -355,7 +355,7 @@ export default function CheckoutPage() {
                 options={{
                   "client-id": paypalClientId || "",
                   currency: "USD",
-                  intent: "CAPTURE",
+                  intent: "capture",
 
                   components: "buttons",
                   // "data-client-token": "", // only if you use advanced cards

@@ -15,15 +15,23 @@ function buildCsp() {
     scriptSrc.push("'unsafe-eval'");
   }
 
-  const connectSrc = [
-    "'self'",
-    'https://api.printify.com',
-    'https://api-m.paypal.com',
-    'https://api-m.sandbox.paypal.com',
-    'https://www.paypal.com',          // NEW
-    'https://www.sandbox.paypal.com',  // NEW
-    'https://*.paypal.com',            // NEW
-  ];
+const connectSrc = [
+  "'self'",
+  'https://api.printify.com',
+  'https://api-m.paypal.com',
+  'https://api-m.sandbox.paypal.com',
+  'https://www.paypal.com',
+  'https://www.sandbox.paypal.com',  // ✅ add this
+  'https://*.paypal.com',            // ✅ wildcard is safest
+];
+
+const frameSrc = [
+  "'self'",
+  'https://www.paypal.com',
+  'https://www.sandbox.paypal.com',  // ✅ add this
+  'https://*.paypal.com',
+];
+
 
   const imgSrc = [
     "'self'",
@@ -33,13 +41,6 @@ function buildCsp() {
     'https://images.printify.com',
     'https://www.paypalobjects.com',   // NEW
     'https://*.paypalobjects.com',     // NEW
-  ];
-
-  const frameSrc = [
-    "'self'",                          // NEW (safe)
-    'https://www.paypal.com',
-    'https://www.sandbox.paypal.com',  // NEW
-    'https://*.paypal.com',            // NEW
   ];
 
   return [
