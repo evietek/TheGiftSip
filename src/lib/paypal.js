@@ -1,9 +1,10 @@
 import 'server-only';
 
+/** Base API + UA */
 const API = process.env.PAYPAL_API || 'https://api-m.sandbox.paypal.com';
-const UA = 'GiftSip-NextJS';
+const UA  = 'GiftSip-NextJS';
 
-/** OAuth token */
+/** Get OAuth access token */
 export async function ppAccessToken() {
   const id = process.env.PAYPAL_CLIENT_ID;
   const secret = process.env.PAYPAL_SECRET;
@@ -21,31 +22,63 @@ export async function ppAccessToken() {
     body: 'grant_type=client_credentials',
     cache: 'no-store',
   });
-  if (!res.ok) throw new Error(`PayPal auth failed: ${res.status}`);
+
+  if (!res.ok) {
+    const t = await res.text().catch(() => '');
+    throw new Error(`PayPal auth failed: ${res.status} ${t.slice(0, 400)}`);
+  }
+
   const data = await res.json();
   return data.access_token;
 }
 
-/** Create order (server-side) */
+/** Create an order (CAPTURE) */
 export async function ppCreateOrder({ amount, currency = 'USD', shipping }) {
   const token = await ppAccessToken();
 
+  // Build shipping block only if all key fields present
+  let shippingBlock;
+  if (shipping) {
+    const countryCode = (shipping.countryCode || '').toUpperCase();
+    const state = shipping.stateCode || shipping.state || ''; // prefer 2-letter code if you have it
+    const hasAll =
+      !!shipping.address1 &&
+      !!shipping.city &&
+      !!state &&
+      !!shipping.zip &&
+      !!countryCode;
+
+    if (hasAll) {
+      shippingBlock = {
+        name: {
+          full_name: `${shipping.firstName || ''} ${shipping.lastName || ''}`.trim(),
+        },
+        address: {
+          address_line_1: shipping.address1,
+          admin_area_2: shipping.city,   // city
+          admin_area_1: state,           // state/province (2-letter for US/CA/AU preferred)
+          postal_code: shipping.zip,
+          country_code: countryCode,     // ISO2 uppercase
+        },
+      };
+    }
+  }
+
   const body = {
     intent: 'CAPTURE',
-    purchase_units: [{
-      amount: { currency_code: currency, value: Number(amount).toFixed(2) },
-      shipping: shipping ? {
-        name: { full_name: `${shipping.firstName || ''} ${shipping.lastName || ''}`.trim() },
-        address: {
-          address_line_1: shipping.address1 || shipping.address,
-          admin_area_2: shipping.city,
-          admin_area_1: shipping.state,
-          postal_code: shipping.zip,
-          country_code: shipping.countryCode,
+    purchase_units: [
+      {
+        amount: {
+          currency_code: currency,
+          value: Number(amount || 0).toFixed(2),
         },
-      } : undefined,
-    }],
-    application_context: { shipping_preference: 'SET_PROVIDED_ADDRESS' },
+        ...(shippingBlock ? { shipping: shippingBlock } : {}),
+      },
+    ],
+    application_context: {
+      // If you supply a shipping address, tell PayPal to use it; otherwise don't require shipping
+      shipping_preference: shippingBlock ? 'SET_PROVIDED_ADDRESS' : 'NO_SHIPPING',
+    },
   };
 
   const res = await fetch(`${API}/v2/checkout/orders`, {
@@ -58,43 +91,62 @@ export async function ppCreateOrder({ amount, currency = 'USD', shipping }) {
     body: JSON.stringify(body),
     cache: 'no-store',
   });
+
   if (!res.ok) {
-    const t = await res.text();
-    throw new Error(`PayPal create failed: ${res.status} ${t.slice(0,400)}`);
+    const t = await res.text().catch(() => '');
+    // Log full details server-side for debugging
+    console.error('PayPal create failed:', res.status, t);
+    throw new Error(`PayPal create failed: ${res.status} ${t.slice(0, 800)}`);
   }
+
   return res.json(); // { id, status, ... }
 }
 
-/** Capture order (server-side) */
+/** Capture an order */
 export async function ppCaptureOrder(orderId) {
+  if (!orderId) throw new Error('orderId required');
   const token = await ppAccessToken();
+
   const res = await fetch(`${API}/v2/checkout/orders/${orderId}/capture`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'User-Agent': UA },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'User-Agent': UA,
+    },
     cache: 'no-store',
   });
+
   if (!res.ok) {
-    const t = await res.text();
-    throw new Error(`PayPal capture failed: ${res.status} ${t.slice(0,400)}`);
+    const t = await res.text().catch(() => '');
+    console.error('PayPal capture failed:', res.status, t);
+    throw new Error(`PayPal capture failed: ${res.status} ${t.slice(0, 800)}`);
   }
+
   return res.json(); // capture details
 }
 
-/** (Optional) Get order details (useful for reconciliation / webhook handling) */
+/** Get order details (optional helper) */
 export async function ppGetOrder(orderId) {
+  if (!orderId) throw new Error('orderId required');
   const token = await ppAccessToken();
+
   const res = await fetch(`${API}/v2/checkout/orders/${orderId}`, {
-    headers: { Authorization: `Bearer ${token}`, 'User-Agent': UA },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'User-Agent': UA,
+    },
     cache: 'no-store',
   });
+
   if (!res.ok) {
-    const t = await res.text();
-    throw new Error(`PayPal get order failed: ${res.status} ${t.slice(0,400)}`);
+    const t = await res.text().catch(() => '');
+    throw new Error(`PayPal get order failed: ${res.status} ${t.slice(0, 400)}`);
   }
+
   return res.json();
 }
 
-/** Verify webhook signature with PayPal (required for secure webhooks) */
+/** Verify webhook signature (if you wire webhooks) */
 export async function verifyWebhookSignature({ headers, event }) {
   const webhookId = process.env.PAYPAL_WEBHOOK_ID;
   if (!webhookId) throw new Error('Missing PAYPAL_WEBHOOK_ID');
@@ -123,9 +175,10 @@ export async function verifyWebhookSignature({ headers, event }) {
   });
 
   if (!res.ok) {
-    const t = await res.text();
-    throw new Error(`Webhook verify failed: ${res.status} ${t.slice(0,300)}`);
+    const t = await res.text().catch(() => '');
+    throw new Error(`Webhook verify failed: ${res.status} ${t.slice(0, 300)}`);
   }
-  const json = await res.json(); // { verification_status: "SUCCESS"|"FAILURE" }
+
+  const json = await res.json();
   return json?.verification_status === 'SUCCESS';
 }

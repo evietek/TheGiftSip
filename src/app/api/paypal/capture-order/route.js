@@ -6,15 +6,17 @@ import { ppCaptureOrder } from '@/lib/paypal';
 
 export async function POST(req) {
   try {
-    const { orderId } = await req.json() || {};
-    if (!orderId) return NextResponse.json({ error: 'Missing orderId' }, { status: 400 });
+    const body = (await req.json()) || {};
+    // accept either orderID (SDK) or orderId (your earlier code)
+    const orderID = body.orderID || body.orderId;
+    if (!orderID) {
+      return NextResponse.json({ error: 'Missing orderID' }, { status: 400 });
+    }
 
-    const capture = await ppCaptureOrder(orderId);
-
-    // Optional: check amount paid vs expected; you can store expected totals in DB
-    // For MVP, just return the capture:
+    const capture = await ppCaptureOrder(orderID);
     return NextResponse.json({ ok: true, capture });
   } catch (e) {
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    console.error('capture-order error:', e);
+    return NextResponse.json({ error: 'Server error', detail: e?.message || String(e) }, { status: 500 });
   }
 }
