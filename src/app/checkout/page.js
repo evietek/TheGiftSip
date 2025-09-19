@@ -355,7 +355,8 @@ export default function CheckoutPage() {
                 options={{
                   "client-id": paypalClientId || "",
                   currency: "USD",
-                  intent: "capture",
+                  intent: "CAPTURE",
+
                   components: "buttons",
                   // "data-client-token": "", // only if you use advanced cards
                 }}
@@ -398,14 +399,14 @@ export default function CheckoutPage() {
                         const capRes = await fetch("/api/paypal/capture-order", {
                           method: "POST",
                           headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ orderId: data.orderID }),
+                          body: JSON.stringify({ orderID: data.orderID }),
                         });
                         const capText = await capRes.text();
-                        let cap = {};
-                        try { cap = JSON.parse(capText); } catch {}
-                        if (!capRes.ok || !cap?.ok) {
-                          throw new Error(cap?.error || "Capture failed");
-                        }
+let cap = {};
+try { cap = JSON.parse(capText); } catch {}
+if (!capRes.ok) {
+  throw new Error(cap?.error || "Capture failed");
+}
 
                         // (Optional) verify amounts here by re-computing server-side
 
