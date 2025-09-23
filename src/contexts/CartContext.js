@@ -8,7 +8,6 @@ const CartContext = createContext(null);
 const STORAGE_KEY = "cart:v2"; // bump if you change shape
 
 function normalizeColorValue(input) {
-  // Accepts object {name, hex, class} or string or numeric ID (we'll resolve later)
   if (input == null) return null;
   if (typeof input === "object" && (input.name || input.hex || input.class)) return input;
   if (typeof input === "string" || typeof input === "number") return { name: String(input) };
@@ -34,7 +33,7 @@ function selectVariant(product, selectedColorTitle, selectedSizeTitle) {
   if (!Array.isArray(product?.variants)) return { variantId: null, sku: null, options: [] };
 
   const colorOpt = getOption(product, "color");
-  const sizeOpt  = getOption(product, "size");
+  const sizeOpt = getOption(product, "size");
 
   const chosen =
     product.variants.find((v) => {
@@ -144,36 +143,31 @@ export const CartProvider = ({ children }) => {
           localStorage.removeItem("cart");
         }
       }
-    } catch (e) {
-    }
+    } catch (e) {}
   }, []);
 
   // save on change
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state.items));
-    } catch (e) {
-    }
+    } catch (e) {}
   }, [state.items]);
 
   // ---------- API ----------
   const addToCart = (product, selectedColorInput, selectedSizeInput, quantity = 1) => {
-    // Normalize incoming values
     const colorNormalized =
       selectedColorInput && typeof selectedColorInput === "object"
         ? selectedColorInput
         : selectedColorInput
-          ? { name: String(selectedColorInput) }
-          : null;
+        ? { name: String(selectedColorInput) }
+        : null;
 
-    // What the UI passed
     let desiredColorTitle = colorNormalized?.name || null;
-    let desiredSizeTitle  = selectedSizeInput != null ? String(selectedSizeInput) : null;
+    let desiredSizeTitle = selectedSizeInput != null ? String(selectedSizeInput) : null;
 
     const colorOpt = getOption(product, "color");
-    const sizeOpt  = getOption(product, "size");
+    const sizeOpt = getOption(product, "size");
 
-    // If numeric-like values were passed, try mapping to option titles
     const maybeNumColor = Number(desiredColorTitle);
     if (colorOpt && Number.isFinite(maybeNumColor)) {
       const cv = colorOpt.values?.find((v) => v.id === maybeNumColor);
@@ -185,20 +179,22 @@ export const CartProvider = ({ children }) => {
       if (sv) desiredSizeTitle = sv.title;
     }
 
-    // Special case: list card might send a VARIANT ID as "size"
     if (Number.isFinite(Number(selectedSizeInput)) && sizeOpt) {
       const variantById = product.variants?.find((v) => v.id === Number(selectedSizeInput));
       if (variantById?.options?.length) {
         const sv = sizeOpt.values?.find((v) => variantById.options.includes(v.id));
-        if (sv) desiredSizeTitle = sv.title; // e.g., "11oz"
+        if (sv) desiredSizeTitle = sv.title;
       }
     }
 
-    // Choose best variant using whatever we have
     const { variantId, sku, options: variantOptionIds } =
       selectVariant(product, desiredColorTitle, desiredSizeTitle);
 
-    // If titles aren't valid, derive from the chosen variant
+    if (!variantId) {
+      console.warn("No enabled variant available for this selection.");
+      return;
+    }
+
     if (sizeOpt) {
       const isValidSizeTitle = sizeOpt.values?.some((v) => v.title === desiredSizeTitle);
       if (!isValidSizeTitle) {
@@ -218,7 +214,6 @@ export const CartProvider = ({ children }) => {
       }
     }
 
-    // Final fallback: first enabled variant's size title
     if (sizeOpt && !desiredSizeTitle) {
       const firstEnabled = product.variants?.find((v) => v.is_enabled);
       if (firstEnabled?.options?.length) {
@@ -227,13 +222,19 @@ export const CartProvider = ({ children }) => {
       }
     }
 
-    // Build color meta for swatch
     const selectedColor = desiredColorTitle
       ? (() => {
           const cv = colorOpt?.values?.find((v) => v.title === desiredColorTitle);
           return { name: desiredColorTitle, hex: cv?.colors?.[0] || null, class: null };
         })()
       : null;
+
+    const imageUrl =
+      typeof product.images?.[0] === "string"
+        ? product.images[0]
+        : product.images?.[0]?.src || "/placeholder-product.jpg";
+
+    const variantTitle = desiredSizeTitle || null;
 
     const payload = {
       cartId: makeCartId({
@@ -242,17 +243,18 @@ export const CartProvider = ({ children }) => {
         colorName: desiredColorTitle || null,
         size: desiredSizeTitle || null,
       }),
-      productId: product.id,          // Printify product ID
-      variantId,                      // Printify variant ID
+      productId: String(product.id), // ensure string for API
+      variantId: Number(variantId),  // ensure number for API
       sku,
       quantity: Math.max(1, Number(quantity) || 1),
 
       // display-only fields
       title: product.title || product.name || "Product",
-      image: product.images?.[0] || "/placeholder-product.jpg",
+      variantTitle,
+      image: imageUrl,
       category: product.category || "Product",
-      selectedColor,                  // { name, hex?, class? }
-      selectedSize: desiredSizeTitle, // ALWAYS human title like "11oz"
+      selectedColor,
+      selectedSize: desiredSizeTitle,
     };
 
     dispatch({ type: "ADD_TO_CART", payload });
