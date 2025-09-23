@@ -1,10 +1,9 @@
-// app/api/printify/shipping-quote/route.js
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/* ---------------- Regions ---------------- */
+/* ------------ Regions ------------ */
 const EU_CODES = new Set([
   "IE","DE","FR","IT","ES","NL","BE","AT","SE","NO","DK","FI","PL","CZ","HU",
   "PT","RO","SK","SI","HR","EE","LV","LT","GR","BG","LU","MT","CY"
@@ -19,18 +18,20 @@ function regionFor(countryCode) {
   return "ROW";
 }
 
+/* ------------ Country normalize (CRITICAL) ------------ */
 function toCC(country) {
   if (!country) return "US";
   const s = String(country).trim();
 
-  // If already ISO2
+  // Already 2-letter?
   if (s.length === 2) {
     const up = s.toUpperCase();
     if (up === "UK") return "GB"; // normalize UK → GB
+    if (up === "EL") return "GR"; // optional Greece normalization
     return up;
   }
 
-  // normalize to lowercase for map
+  // Lowercase name → ISO code
   const norm = s.toLowerCase();
   const map = {
     "united kingdom": "GB",
@@ -45,16 +46,14 @@ function toCC(country) {
     "united states": "US",
     "united states of america": "US",
     "usa": "US",
-
     "canada": "CA",
     "australia": "AU",
     "new zealand": "NZ",
   };
-
   return map[norm] || "ROW";
 }
 
-/* ---------------- Highest-safe Standard rates (USD) ---------------- */
+/* ------------ Highest-safe Standard rates (USD) ------------ */
 // Shirts
 const SHIRT = {
   US:    { first: 5.89, add: 2.99, eta: "2-5" },
@@ -83,7 +82,7 @@ const MUG15 = {
   ROW:   { first: 21.19, add: 8.79, eta: "10-30" },
 };
 
-/* ---------------- Helpers ---------------- */
+/* ------------ Helpers ------------ */
 function isShirt(item) {
   const t = `${item.title || item.name || ""}`.toLowerCase();
   return t.includes("t-shirt") || t.includes("tshirt") || t.includes("tee") || t.includes("shirt");
@@ -106,42 +105,43 @@ function slowestEta(a, b) {
   return ub > ua ? b : a;
 }
 
-/* ---------------- Route ---------------- */
+/* ------------ Route ------------ */
 export async function POST(req) {
   try {
-    const payload = await req.json();
+    const body = await req.json();
 
-    // Accept either flat fields or nested address: {...}
-    const items = payload?.items;
-    const country = payload?.country || payload?.address?.country;
-    const address = payload?.address || payload?.address1 || payload?.address?.address || payload?.address_line1 || payload?.address;
-    const city = payload?.city || payload?.address?.city;
-    const state = payload?.state || payload?.address?.region || payload?.address?.state;
-    // tolerate zip vs zipCode vs address.zip
-    const zip = payload?.zip || payload?.zipCode || payload?.address?.zip || payload?.address?.postalCode;
+    // Accept flat or nested; accept code or name
+    const items = body?.items;
+    const countryInput =
+      body?.countryCode ||
+      body?.address?.countryCode ||
+      body?.country ||
+      body?.address?.country;
+
+    const address = body?.address || body?.address1 || body?.address?.address || body?.address_line1 || body?.address;
+    const city    = body?.city || body?.address?.city;
+    const state   = body?.state || body?.address?.region || body?.address?.state;
+    const zip     = body?.zip || body?.zipCode || body?.address?.zip || body?.address?.postalCode;
 
     if (!Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: "Items array is required" }, { status: 400 });
     }
-    if (!country || !address || !city || !state || !zip) {
+    if (!countryInput || !address || !city || !state || !zip) {
       return NextResponse.json({ error: "Full address + country required" }, { status: 400 });
     }
 
-    const cc = toCC(country);
+    const cc = toCC(countryInput);
     const region = regionFor(cc);
 
-    // Count items (shirts + mugs only)
+    // DEBUG: see mapping in logs
+    console.log("[shipping-quote] countryIn:", countryInput, "→ cc:", cc, "→ region:", region);
+
+    // Count items
     let shirtQty = 0, mug11Qty = 0, mug15Qty = 0;
     for (const it of items) {
       const q = Math.max(1, Number(it.quantity) || 1);
-      if (isShirt(it)) {
-        shirtQty += q;
-        continue;
-      }
-      if (isMug(it)) {
-        if (mugSize(it) === "MUG15") mug15Qty += q;
-        else mug11Qty += q;
-      }
+      if (isShirt(it)) shirtQty += q;
+      else if (isMug(it)) (mugSize(it) === "MUG15" ? (mug15Qty += q) : (mug11Qty += q));
     }
 
     let total = 0;
@@ -172,7 +172,7 @@ export async function POST(req) {
         estimatedDays: eta,
         region,
         countryCode: cc,
-        address: { address, city, state, zip, country },
+        address: { address, city, state, zip, country: countryInput },
         notes: "Standard shipping only. No auto-upgrade.",
       },
     });
