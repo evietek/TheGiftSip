@@ -23,18 +23,18 @@ function toCC(country) {
   if (!country) return "US";
   const s = String(country).trim();
 
-  // If already a 2-letter code
+  // If already ISO2
   if (s.length === 2) {
     const up = s.toUpperCase();
     if (up === "UK") return "GB"; // normalize UK → GB
-    if (up === "EL") return "GR"; // (optional) normalize Greece → GR
     return up;
   }
 
-  // Common full names → ISO2
+  // normalize to lowercase for map
   const norm = s.toLowerCase();
   const map = {
     "united kingdom": "GB",
+    "uk": "GB",
     "great britain": "GB",
     "britain": "GB",
     "england": "GB",
@@ -45,6 +45,7 @@ function toCC(country) {
     "united states": "US",
     "united states of america": "US",
     "usa": "US",
+
     "canada": "CA",
     "australia": "AU",
     "new zealand": "NZ",
