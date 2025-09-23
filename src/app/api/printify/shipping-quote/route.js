@@ -21,13 +21,36 @@ function regionFor(countryCode) {
 
 function toCC(country) {
   if (!country) return "US";
-  if (country.length === 2) return country.toUpperCase();
+  const s = String(country).trim();
+
+  // If already a 2-letter code
+  if (s.length === 2) {
+    const up = s.toUpperCase();
+    if (up === "UK") return "GB"; // normalize UK → GB
+    if (up === "EL") return "GR"; // (optional) normalize Greece → GR
+    return up;
+  }
+
+  // Common full names → ISO2
+  const norm = s.toLowerCase();
   const map = {
-    "United States":"US", USA:"US",
-    "United Kingdom":"GB", UK:"GB", "Great Britain":"GB",
-    Canada:"CA", Australia:"AU", "New Zealand":"NZ"
+    "united kingdom": "GB",
+    "great britain": "GB",
+    "britain": "GB",
+    "england": "GB",
+    "scotland": "GB",
+    "wales": "GB",
+    "northern ireland": "GB",
+
+    "united states": "US",
+    "united states of america": "US",
+    "usa": "US",
+    "canada": "CA",
+    "australia": "AU",
+    "new zealand": "NZ",
   };
-  return (map[country] || country || "US").toUpperCase();
+
+  return map[norm] || "ROW";
 }
 
 /* ---------------- Highest-safe Standard rates (USD) ---------------- */
