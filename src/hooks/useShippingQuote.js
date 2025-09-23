@@ -41,7 +41,7 @@ export function useShippingQuote(items, addressData) {
             })),
             // Use flat fields; route also accepts nested address
             country: addressData.country,
-            countryCode: addressData.countryCode, // lets the API use “GB” directly
+            countryCode: addressData.countryCode,
             address: addressData.address,
             city: addressData.city,
             state: addressData.state,

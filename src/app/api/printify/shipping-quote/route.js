@@ -23,15 +23,13 @@ function toCC(country) {
   if (!country) return "US";
   const s = String(country).trim();
 
-  // Already 2-letter?
+  // If already ISO-2
   if (s.length === 2) {
     const up = s.toUpperCase();
     if (up === "UK") return "GB"; // normalize UK → GB
-    if (up === "EL") return "GR"; // optional Greece normalization
     return up;
   }
 
-  // Lowercase name → ISO code
   const norm = s.toLowerCase();
   const map = {
     "united kingdom": "GB",
@@ -50,9 +48,9 @@ function toCC(country) {
     "australia": "AU",
     "new zealand": "NZ",
   };
+
   return map[norm] || "ROW";
 }
-
 /* ------------ Highest-safe Standard rates (USD) ------------ */
 // Shirts
 const SHIRT = {
